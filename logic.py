@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import datetime
 
 import requests as requests
@@ -76,6 +77,33 @@ class Yad2Logic:
 
         html = r.content
         parsed_html = BeautifulSoup(html, "lxml")
+
+        h_captcha = parsed_html.find("div", {"class": "h-captcha"})
+        if h_captcha:
+            site_key = h_captcha.get("data-sitekey")
+            api_key = os.getenv("CAPTCHA_API_KEY")
+
+            form = {
+                "method": "userrecaptcha",
+                "googlekey": site_key,
+                "pageurl": url,
+                "json": 1
+            }
+
+            response = requests.post('https://2captcha.com/in.php', data=form)
+            request_id = response.json()['request']
+
+            url = f"http://2captcha.com/res.php?key={api_key}&action=get&id={request_id}&json=1"
+
+            status = 0
+            while not status:
+                res = requests.get(url)
+                if res.json()['status'] == 0:
+                    time.sleep(3)
+                else:
+                    requ = res.json()['request']
+                    print(requ)
+
         return parsed_html
 
     def _get_cookie(self):
