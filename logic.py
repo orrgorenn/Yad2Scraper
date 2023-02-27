@@ -86,8 +86,6 @@ class Yad2Logic:
         html = driver.page_source
         parsed_html = BeautifulSoup(html, "lxml")
 
-        print(parsed_html)
-
         h_captcha = parsed_html.find("div", {"class": "h-captcha"})
         if h_captcha:
             site_key = h_captcha.get("data-sitekey")
@@ -108,15 +106,17 @@ class Yad2Logic:
 
             status = 0
             data = {}
+            print("Waiting for captcha...")
             while not status:
                 res = requests.get(get_url)
                 if res.json()['status'] == 0:
-                    time.sleep(3)
+                    time.sleep(5)
+                    print("Still waiting...")
                 else:
                     requ = res.json()['request']
                     js = f'document.getElementById("recaptcha-response").innerHTML="{requ}";'
                     driver.execute_script(js)
-                    driver.find_element(By.ID, "recaptcha-demo-submit").submit()
+                    driver.find_element(By.CLASS_NAME, "btn").submit()
                     status = 1
 
             p = requests.post(url, data=data)
