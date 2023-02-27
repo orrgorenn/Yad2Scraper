@@ -100,14 +100,18 @@ class Yad2Logic:
             url = f"http://2captcha.com/res.php?key={api_key}&action=get&id={request_id}&json=1"
 
             status = 0
+            data = {}
             while not status:
                 res = requests.get(url)
                 if res.json()['status'] == 0:
                     time.sleep(3)
                 else:
                     requ = res.json()['request']
-                    print(requ)
+                    data["recaptcha_response"] = requ
                     status = 1
+
+            p = requests.post(url, data=data)
+            print(p.content)
 
         return parsed_html
 
