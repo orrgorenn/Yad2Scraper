@@ -81,11 +81,13 @@ class Yad2Logic:
         h_captcha = parsed_html.find("div", {"class": "h-captcha"})
         if h_captcha:
             site_key = h_captcha.get("data-sitekey")
+            print("sitekey", site_key)
             api_key = os.getenv("CAPTCHA_API_KEY")
 
             form = {
                 "method": "userrecaptcha",
                 "googlekey": site_key,
+                "key": api_key,
                 "pageurl": url,
                 "json": 1
             }
