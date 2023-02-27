@@ -86,6 +86,8 @@ class Yad2Logic:
         html = driver.page_source
         parsed_html = BeautifulSoup(html, "lxml")
 
+        print(parsed_html)
+
         h_captcha = parsed_html.find("div", {"class": "h-captcha"})
         if h_captcha:
             site_key = h_captcha.get("data-sitekey")
@@ -99,10 +101,7 @@ class Yad2Logic:
                 "json": 1
             }
 
-            print(form)
-
             response = requests.post('https://2captcha.com/in.php', data=form)
-            print(response.content)
             request_id = response.json()['request']
 
             get_url = f"http://2captcha.com/res.php?key={api_key}&action=get&id={request_id}&json=1"
