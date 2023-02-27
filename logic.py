@@ -86,7 +86,7 @@ class Yad2Logic:
 
             form = {
                 "method": "userrecaptcha",
-                "googlekey": site_key,
+                "googlekey": site_key.replace('-', ''),
                 "key": api_key,
                 "pageurl": url,
                 "json": 1
