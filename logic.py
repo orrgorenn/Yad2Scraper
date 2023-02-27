@@ -91,6 +91,7 @@ class Yad2Logic:
             }
 
             response = requests.post('https://2captcha.com/in.php', data=form)
+            print(response.content)
             request_id = response.json()['request']
 
             url = f"http://2captcha.com/res.php?key={api_key}&action=get&id={request_id}&json=1"
