@@ -81,7 +81,6 @@ class Yad2Logic:
         h_captcha = parsed_html.find("div", {"class": "h-captcha"})
         if h_captcha:
             site_key = h_captcha.get("data-sitekey").replace('-', '')
-            print("sitekey", site_key)
             api_key = os.getenv("CAPTCHA_API_KEY")
 
             form = {
@@ -91,6 +90,8 @@ class Yad2Logic:
                 "pageurl": url,
                 "json": 1
             }
+
+            print(form)
 
             response = requests.post('https://2captcha.com/in.php', data=form)
             print(response.content)
