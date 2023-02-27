@@ -6,8 +6,11 @@ import requests as requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from pymongo import MongoClient
+from selenium.webdriver.chrome.options import Options
 
 from ythread import YThread
+
+from selenium import webdriver
 
 load_dotenv()
 
@@ -61,6 +64,10 @@ class Yad2Logic:
         return c_apts
 
     def _get_apt_page(self, offset: int):
+        options = Options()
+        options.headless = True
+        driver = webdriver.Chrome(options=options)
+
         url = (
             "https://www.yad2.co.il/realestate/rent?"
             "city=" + str(self.city_code) +
@@ -70,12 +77,9 @@ class Yad2Logic:
 
         print(f"Scraping {url}")
 
-        r = requests.get(
-            url,
-            headers=self._get_headers()
-        )
+        driver.get(url)
 
-        html = r.content
+        html = driver.page_source
         parsed_html = BeautifulSoup(html, "lxml")
 
         h_captcha = parsed_html.find("div", {"class": "h-captcha"})
