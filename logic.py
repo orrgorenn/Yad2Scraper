@@ -94,7 +94,6 @@ class Yad2Logic:
             print(form)
 
             response = requests.post('https://2captcha.com/in.php', data=form)
-            print(response.content)
             request_id = response.json()['request']
 
             url = f"http://2captcha.com/res.php?key={api_key}&action=get&id={request_id}&json=1"
@@ -107,6 +106,7 @@ class Yad2Logic:
                 else:
                     requ = res.json()['request']
                     print(requ)
+                    status = 1
 
         return parsed_html
 
