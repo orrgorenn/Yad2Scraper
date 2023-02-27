@@ -99,6 +99,8 @@ class Yad2Logic:
                 "json": 1
             }
 
+            print(parsed_html)
+
             response = requests.post('https://2captcha.com/in.php', data=form)
             request_id = response.json()['request']
 
@@ -114,13 +116,14 @@ class Yad2Logic:
                     print("Still waiting...")
                 else:
                     requ = res.json()['request']
-                    js = f'document.getElementById("recaptcha-response").innerHTML="{requ}";'
+                    js = f'document.getElementsByName("h-captcha-response")[0].innerHTML="{requ}";'
+                    driver.execute_script(js)
+                    js = f'document.getElementsByName("g-recaptcha-response")[0].innerHTML="{requ}";'
                     driver.execute_script(js)
                     driver.find_element(By.CLASS_NAME, "btn").submit()
                     status = 1
 
-            p = requests.post(url, data=data)
-            print(p.content)
+            return self._get_apt_page(offset)
 
         return parsed_html
 
