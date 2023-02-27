@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 
 from ythread import YThread
 
@@ -111,7 +112,9 @@ class Yad2Logic:
                     time.sleep(3)
                 else:
                     requ = res.json()['request']
-                    data["recaptcha_response"] = requ
+                    js = f'document.getElementById("recaptcha-response").innerHTML="{requ}";'
+                    driver.execute_script(js)
+                    driver.find_element(By.ID, "recaptcha-demo-submit").submit()
                     status = 1
 
             p = requests.post(url, data=data)
