@@ -80,7 +80,7 @@ class Yad2Logic:
 
         h_captcha = parsed_html.find("div", {"class": "h-captcha"})
         if h_captcha:
-            site_key = h_captcha.get("data-sitekey").replace('-', '')
+            site_key = h_captcha.get("data-sitekey")
             api_key = os.getenv("CAPTCHA_API_KEY")
 
             form = {
