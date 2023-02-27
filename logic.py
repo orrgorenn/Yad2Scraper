@@ -84,8 +84,8 @@ class Yad2Logic:
             api_key = os.getenv("CAPTCHA_API_KEY")
 
             form = {
-                "method": "userrecaptcha",
-                "googlekey": site_key,
+                "method": "hcaptcha",
+                "sitekey": site_key,
                 "key": api_key,
                 "pageurl": url,
                 "json": 1
