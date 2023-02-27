@@ -67,6 +67,8 @@ class Yad2Logic:
     def _get_apt_page(self, offset: int):
         options = Options()
         options.headless = True
+        options.add_argument("--no-sandbox")
+        options.add_argument("--headless")
         options.add_argument("--disable-dev-shm-usage")
         driver = webdriver.Chrome(options=options)
 
