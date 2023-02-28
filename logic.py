@@ -37,7 +37,7 @@ class Yad2Logic:
                 api_url,
                 json={
                     'chat_id': os.getenv('TELEGRAM_CHAT_ID'),
-                    'text': html.escape(message),
+                    'text': message,
                     'parse_mode': ParseMode.HTML
                 }
             )
