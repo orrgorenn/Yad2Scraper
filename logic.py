@@ -287,7 +287,7 @@ class Yad2Logic:
             )
         except ConnectionError as e:
             print(f"Cant scrape {url}")
-            pass
+            raise e
 
         html = r.content
         parsed_html = BeautifulSoup(html, "lxml")
