@@ -280,10 +280,14 @@ class Yad2Logic:
                 self.driver.find_element(By.CLASS_NAME, "btn").submit()
                 status = 1
 
-        r = requests.get(
-            url,
-            headers=self._get_headers()
-        )
+        try:
+            r = requests.get(
+                url,
+                headers=self._get_headers()
+            )
+        except ConnectionError as e:
+            print(f"Cant scrape {url}")
+            pass
 
         html = r.content
         parsed_html = BeautifulSoup(html, "lxml")
