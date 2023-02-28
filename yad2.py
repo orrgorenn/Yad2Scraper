@@ -1,4 +1,5 @@
 import argparse
+import datetime
 
 from logic import Yad2Logic
 
@@ -17,4 +18,5 @@ if __name__ == "__main__":
 
     logic = Yad2Logic(args.city_code)
 
+    print(f"Starting scraping: {datetime.datetime.now()}")
     logic.get_data()
