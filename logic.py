@@ -88,19 +88,25 @@ class Yad2Logic:
 
         print(f"Scraping {url}")
 
-        r = requests.get(
-            url,
-            headers=self._get_headers()
-        )
+        r = None
 
-        html = r.content
-        parsed_html = BeautifulSoup(html, "lxml")
+        try:
+            r = requests.get(
+                url,
+                headers=self._get_headers()
+            )
+        except Exception:
+            pass
 
-        h_captcha = parsed_html.find("div", {"class": "h-captcha"})
-        if h_captcha:
-            return self._solve_captcha(url)
+        if r:
+            html = r.content
+            parsed_html = BeautifulSoup(html, "lxml")
 
-        return parsed_html
+            h_captcha = parsed_html.find("div", {"class": "h-captcha"})
+            if h_captcha:
+                return self._solve_captcha(url)
+
+            return parsed_html
 
     def _get_cookie(self):
         if len(self.cookie):
@@ -147,86 +153,88 @@ class Yad2Logic:
 
     def _process_apts(self, offset):
         parsed_html = self._get_apt_page(offset)
-        apts = parsed_html.find_all("div", {"class": "feeditem table"})
-        for apt in apts:
-            try:
-                item_id = apt.find_all("div", {"class": "feed_item"})[0]
-                item_id = item_id.get('item-id')
+        if parsed_html:
+            apts = parsed_html.find_all("div", {"class": "feeditem table"})
+            for apt in apts:
+                try:
+                    item_id = apt.find_all("div", {"class": "feed_item"})[0]
+                    item_id = item_id.get('item-id')
 
-                try_title = apt.find("span", {"class": "title"})
-                if try_title:
-                    title = try_title
-                else:
-                    title = apt.find("div", {"class": "title"})
-                title = title.text.strip()
+                    try_title = apt.find("span", {"class": "title"})
+                    if try_title:
+                        title = try_title
+                    else:
+                        title = apt.find("div", {"class": "title"})
+                    title = title.text.strip()
 
-                try_subtitle = apt.find("span", {"class": "subtitle"})
-                if try_subtitle:
-                    subtitle = try_subtitle
-                else:
-                    subtitle = apt.find("div", {"class": "sub_title"})
-                subtitle = subtitle.text
-                subtitle = tuple(
-                    sub_part.strip() for sub_part in subtitle.split(',')
-                )
+                    try_subtitle = apt.find("span", {"class": "subtitle"})
+                    if try_subtitle:
+                        subtitle = try_subtitle
+                    else:
+                        subtitle = apt.find("div", {"class": "sub_title"})
+                    subtitle = subtitle.text
+                    subtitle = tuple(
+                        sub_part.strip() for sub_part in subtitle.split(',')
+                    )
 
-                type_ = subtitle[0]
-                city = subtitle[-1]
+                    type_ = subtitle[0]
+                    city = subtitle[-1]
 
-                neighborhood = ""
-                if subtitle[1]:
-                    neighborhood = subtitle[1]
+                    neighborhood = ""
+                    if subtitle[1]:
+                        neighborhood = subtitle[1]
 
-                try_attr = tuple(
-                    span.string for span in apt.find(
-                        "div", {"class": "middle_col"}
-                    ).find_all('span')
-                )
-
-                if len(try_attr) != 0:
-                    attr = try_attr
-                    rooms, floor, size = str(attr[0]), str(attr[2]), str(
-                        attr[4])
-                else:
-                    attr = tuple(
+                    try_attr = tuple(
                         span.string for span in apt.find(
                             "div", {"class": "middle_col"}
-                        ).find_all('dt')
+                        ).find_all('span')
                     )
-                    rooms, floor, size = str(attr[0]), str(attr[1]), str(attr[2])
-                floor = 0 if floor.strip() == 'קרקע' else floor
-                rooms = -1 if rooms == "-" else float(rooms)
-                size = -1 if size == "לא צוין" else int(size)
 
-                try_price = apt.find("div", {"class": "price"})
-                if try_price:
-                    price = try_price
-                else:
-                    price = apt.find("div", {"class": "left_col"})
-                price = price.string.strip()
-                price = int(price[:-2].replace(',', ''))
+                    if len(try_attr) != 0:
+                        attr = try_attr
+                        rooms, floor, size = str(attr[0]), str(attr[2]), str(
+                            attr[4])
+                    else:
+                        attr = tuple(
+                            span.string for span in apt.find(
+                                "div", {"class": "middle_col"}
+                            ).find_all('dt')
+                        )
+                        rooms, floor, size = str(attr[0]), str(attr[1]), str(attr[2])
+                    floor = 0 if floor.strip() == 'קרקע' else floor
+                    rooms = -1 if rooms == "-" else float(rooms)
+                    size = -1 if size == "לא צוין" else int(size)
 
-                url = f"https://yad2.co.il/item/{item_id}"
+                    try_price = apt.find("div", {"class": "price"})
+                    if try_price:
+                        price = try_price
+                    else:
+                        price = apt.find("div", {"class": "left_col"})
+                    price = price.string.strip()
+                    price = int(price[:-2].replace(',', ''))
 
-                apt_data = {
-                    "price": price,
-                    "address": title,
-                    "city": city,
-                    "type": type_,
-                    "neighborhood": neighborhood,
-                    "rooms": rooms,
-                    "floor": int(floor),
-                    "size": size,
-                    "update": self._get_item_date(apt),
-                    "scrape_date": datetime.today().strftime('%d/%m/%Y'),
-                    "item_id": item_id,
-                    "url": url
-                }
+                    url = f"https://yad2.co.il/item/{item_id}"
 
-                self.apts.append(apt_data)
-            except AttributeError as e:
-                print(apt)
-                raise e
+                    apt_data = {
+                        "price": price,
+                        "address": title,
+                        "city": city,
+                        "type": type_,
+                        "neighborhood": neighborhood,
+                        "rooms": rooms,
+                        "floor": int(floor),
+                        "size": size,
+                        "update": self._get_item_date(apt),
+                        "scrape_date": datetime.today().strftime('%d/%m/%Y'),
+                        "item_id": item_id,
+                        "url": url
+                    }
+
+                    self.apts.append(apt_data)
+                except AttributeError as e:
+                    print(apt)
+                    raise e
+
 
     def _solve_captcha(self, url):
         options = Options()
