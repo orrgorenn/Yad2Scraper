@@ -6,9 +6,12 @@ import requests as requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from pymongo import MongoClient
+from requests.adapters import HTTPAdapter
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from telegram.helpers import escape_markdown
+from urllib3 import Retry
 
 from ythread import YThread
 
@@ -27,14 +30,13 @@ class Yad2Logic:
 
     def _send_message(self, message: str):
         api_url = self.telegram_url.format(os.getenv('TELEGRAM_TOKEN'))
-        print(f"Api {api_url}")
 
         try:
             r = requests.post(
                 api_url,
                 json={
                     'chat_id': os.getenv('TELEGRAM_CHAT_ID'),
-                    'text': message,
+                    'text': escape_markdown(message, version=2),
                     'parse_mode': 'MarkdownV2'
                 }
             )
@@ -54,6 +56,10 @@ class Yad2Logic:
         offset = self.OFFSET
 
         session = requests.Session()
+        retry = Retry(connect=3, backoff_factor=0.5)
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
 
         parsed_html = self._get_apt_page(offset)
         all_offset = (
@@ -298,26 +304,27 @@ class Yad2Logic:
         message = ""
 
         if new_apt:
-            message += "חדש להשכרה\r\n"
-            message += "ב{}, {} \\- {}\r\n".format(
+            message += "*חדש להשכרה*\r\n"
+            message += "ב{}, {} - {}\r\n".format(
                 found_apt["city"],
                 found_apt["neighborhood"],
                 found_apt["address"]
             )
-            message += "קומה {}\r\n".format(found_apt["floor"])
-            message += "{} חדרים\r\n".format(found_apt["rooms"])
-            message += "מחיר {}\r\n".format(found_apt["price"])
+            message += "*קומה* {}\r\n".format(found_apt["floor"])
+            message += "{} *חדרים*\r\n".format(found_apt["rooms"])
+            message += "*מחיר* {}\r\n".format(found_apt["price"])
         else:
-            message += "עדכון מחיר\r\n"
-            message += "ב{}, {} \\- {}\r\n".format(
+            message += "*עדכון מחיר - {}*".format(found_apt["type"])
+            message += "ב{}, {} - {}\r\n".format(
                 found_apt["city"],
                 found_apt["neighborhood"],
                 found_apt["address"]
             )
-            message += "קומה {}\r\n".format(found_apt["floor"])
-            message += "{} חדרים\r\n".format(found_apt["rooms"])
-            message += "מחיר קודם {}\r\n".format(apt["price"])
-            message += "מחיר נוכחי {}\r\n".format(found_apt["price"])
+            message += "*קומה* {}\r\n".format(found_apt["floor"])
+            message += "{} *חדרים*\r\n".format(found_apt["rooms"])
+            message += "*מחיר* ~{}~ {}\r\n".format(apt["price"], found_apt["price"])
+
+        message += "{}\r\n".format(apt["url"])
 
         self._send_message(message)
 
@@ -329,10 +336,10 @@ class Yad2Logic:
             found_apt = c_rentals.find_one({"item_id": apt["item_id"]})
             if not found_apt:
                 c_rentals.insert_one(apt)
-                self._send_update(found_apt)
+                self._send_update(apt)
             else:
                 if found_apt.get("price") != apt["price"]:
-                    self._send_update(found_apt, True, apt)
+                    self._send_update(apt, False, found_apt)
                     c_updates.insert_one({
                         "apt_id": found_apt.get("_id"),
                         "prev_price": found_apt.get("price"),
