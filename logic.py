@@ -11,7 +11,7 @@ from requests.adapters import HTTPAdapter
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from telegram.helpers import escape_markdown
+from telegram.constants import ParseMode
 from urllib3 import Retry
 
 from ythread import YThread
@@ -38,7 +38,7 @@ class Yad2Logic:
                 json={
                     'chat_id': os.getenv('TELEGRAM_CHAT_ID'),
                     'text': html.escape(message),
-                    'parse_mode': 'html'
+                    'parse_mode': ParseMode.HTML
                 }
             )
             print(r.content)
