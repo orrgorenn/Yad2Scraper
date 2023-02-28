@@ -285,7 +285,7 @@ class Yad2Logic:
                 url,
                 headers=self._get_headers()
             )
-        except ConnectionError as e:
+        except Exception as e:
             print(f"Cant scrape {url}")
             raise e
 
