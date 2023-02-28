@@ -12,8 +12,6 @@ from selenium.webdriver.common.by import By
 
 from ythread import YThread
 
-from selenium import webdriver
-
 load_dotenv()
 
 
@@ -25,6 +23,24 @@ class Yad2Logic:
     def __init__(self, city_code: int):
         self.city_code = city_code
         self.driver = None
+        self.telegram_url = "https://api.telegram.org/bot{}/sendMessage"
+
+    def _send_message(self, message: str):
+        api_url = self.telegram_url.format(os.getenv('TELEGRAM_TOKEN'))
+        print(f"Api {api_url}")
+
+        try:
+            r = requests.post(
+                api_url,
+                json={
+                    'chat_id': os.getenv('TELEGRAM_CHAT_ID'),
+                    'text': message,
+                    'parse_mode': 'MarkdownV2'
+                }
+            )
+            print(r.content)
+        except Exception as e:
+            print(e)
 
     def get_data(self):
         data = self._prepare_data()
@@ -67,13 +83,6 @@ class Yad2Logic:
         return c_apts
 
     def _get_apt_page(self, offset: int):
-        options = Options()
-        options.headless = True
-        options.add_argument("--no-sandbox")
-        options.add_argument("--headless")
-        options.add_argument("--disable-dev-shm-usage")
-        driver = webdriver.Chrome(options=options)
-
         url = (
             "https://www.yad2.co.il/realestate/rent?"
             "city=" + str(self.city_code) +
@@ -83,9 +92,12 @@ class Yad2Logic:
 
         print(f"Scraping {url}")
 
-        driver.get(url)
+        r = requests.get(
+            url,
+            headers=self._get_headers()
+        )
 
-        html = driver.page_source
+        html = r.content
         parsed_html = BeautifulSoup(html, "lxml")
 
         h_captcha = parsed_html.find("div", {"class": "h-captcha"})
@@ -165,6 +177,10 @@ class Yad2Logic:
                 type_ = subtitle[0]
                 city = subtitle[-1]
 
+                neighborhood = ""
+                if subtitle[1]:
+                    neighborhood = subtitle[1]
+
                 try_attr = tuple(
                     span.string for span in apt.find(
                         "div", {"class": "middle_col"}
@@ -201,6 +217,7 @@ class Yad2Logic:
                     "address": title,
                     "city": city,
                     "type": type_,
+                    "neighborhood": neighborhood,
                     "rooms": rooms,
                     "floor": int(floor),
                     "size": size,
@@ -273,6 +290,33 @@ class Yad2Logic:
 
         return parsed_html
 
+    def _send_update(self, found_apt, new_apt=True, apt=None):
+        message = ""
+
+        if new_apt:
+            message += "חדש להשכרה\r\n"
+            message += "ב{}, {} \\- {}\r\n".format(
+                found_apt["city"],
+                found_apt["neighborhood"],
+                found_apt["address"]
+            )
+            message += "קומה {}\r\n".format(found_apt["floor"])
+            message += "{} חדרים\r\n".format(found_apt["rooms"])
+            message += "מחיר {}\r\n".format(found_apt["price"])
+        else:
+            message += "עדכון מחיר\r\n"
+            message += "ב{}, {} \\- {}\r\n".format(
+                found_apt["city"],
+                found_apt["neighborhood"],
+                found_apt["address"]
+            )
+            message += "קומה {}\r\n".format(found_apt["floor"])
+            message += "{} חדרים\r\n".format(found_apt["rooms"])
+            message += "מחיר קודם {}\r\n".format(apt["price"])
+            message += "מחיר נוכחי {}\r\n".format(found_apt["price"])
+
+        self._send_message(message)
+
     def _save_data(self, data):
         d_yad2 = self._get_database()
         c_rentals = d_yad2["rentals"]
@@ -281,8 +325,10 @@ class Yad2Logic:
             found_apt = c_rentals.find_one({"item_id": apt["item_id"]})
             if not found_apt:
                 c_rentals.insert_one(apt)
+                self._send_update(found_apt)
             else:
                 if found_apt.get("price") != apt["price"]:
+                    self._send_update(found_apt, True, apt)
                     c_updates.insert_one({
                         "apt_id": found_apt.get("_id"),
                         "prev_price": found_apt.get("price"),
