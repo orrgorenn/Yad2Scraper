@@ -4,3 +4,4 @@ bs4==0.0.1
 beautifulsoup4==4.11.2
 pymongo==4.3.3
 python-dotenv==1.0.0
+selenium==4.8.2

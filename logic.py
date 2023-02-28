@@ -1,11 +1,14 @@
-#!/usr/bin/python
 import os
+import time
 from datetime import datetime
 
 import requests as requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from pymongo import MongoClient
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 
 from ythread import YThread
 
@@ -19,6 +22,7 @@ class Yad2Logic:
 
     def __init__(self, city_code: int):
         self.city_code = city_code
+        self.driver = None
 
     def get_data(self):
         data = self._prepare_data()
@@ -77,6 +81,11 @@ class Yad2Logic:
 
         html = r.content
         parsed_html = BeautifulSoup(html, "lxml")
+
+        h_captcha = parsed_html.find("div", {"class": "h-captcha"})
+        if h_captcha:
+            return self._solve_captcha(url)
+
         return parsed_html
 
     def _get_cookie(self):
@@ -199,6 +208,64 @@ class Yad2Logic:
             except AttributeError as e:
                 print(apt)
                 raise e
+
+    def _solve_captcha(self, url):
+        options = Options()
+        options.headless = True
+        options.add_argument("--no-sandbox")
+        options.add_argument("--headless")
+        options.add_argument("--disable-dev-shm-usage")
+        self.driver = webdriver.Chrome(options=options)
+
+        self.driver.get(url)
+
+        html = self.driver.page_source
+        parsed_html = BeautifulSoup(html, "lxml")
+
+        h_captcha = parsed_html.find("div", {"class": "h-captcha"})
+
+        site_key = h_captcha.get("data-sitekey")
+        api_key = os.getenv("CAPTCHA_API_KEY")
+
+        form = {
+            "method": "hcaptcha",
+            "sitekey": site_key,
+            "key": api_key,
+            "pageurl": url,
+            "json": 1
+        }
+
+        response = requests.post('https://2captcha.com/in.php', data=form)
+        request_id = response.json()['request']
+
+        get_url = f"https://2captcha.com/res.php?key={api_key}" \
+                  f"&action=get&id={request_id}&json=1"
+
+        print("Waiting for captcha...")
+        status = 0
+        while not status:
+            res = requests.get(get_url)
+            if res.json()['status'] == 0:
+                time.sleep(5)
+                print("Still waiting...")
+            else:
+                requ = res.json()['request']
+                js = f'document.getElementsByName("h-captcha-response")[0].innerHTML="{requ}";'
+                self.driver.execute_script(js)
+                js = f'document.getElementsByName("g-recaptcha-response")[0].innerHTML="{requ}";'
+                self.driver.execute_script(js)
+                self.driver.find_element(By.CLASS_NAME, "btn").submit()
+                status = 1
+
+        r = requests.get(
+            url,
+            headers=self._get_headers()
+        )
+
+        html = r.content
+        parsed_html = BeautifulSoup(html, "lxml")
+
+        return parsed_html
 
     def _save_data(self, data):
         d_yad2 = self._get_database()
