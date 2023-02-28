@@ -2,6 +2,7 @@ import html
 import os
 import time
 from datetime import datetime
+from random import randint
 
 import requests as requests
 from bs4 import BeautifulSoup
@@ -33,7 +34,7 @@ class Yad2Logic:
         api_url = self.telegram_url.format(os.getenv('TELEGRAM_TOKEN'))
 
         try:
-            r = requests.post(
+            requests.post(
                 api_url,
                 json={
                     'chat_id': os.getenv('TELEGRAM_CHAT_ID'),
@@ -41,7 +42,7 @@ class Yad2Logic:
                     'parse_mode': ParseMode.HTML
                 }
             )
-            print(r.content)
+            time.sleep(randint(10, 30))
         except Exception as e:
             print(e)
 
@@ -50,7 +51,8 @@ class Yad2Logic:
         try:
             self._save_data(data)
             return True
-        except Exception:
+        except Exception as e:
+            raise e
             return False
 
     def _prepare_data(self):
@@ -67,24 +69,11 @@ class Yad2Logic:
             int(parsed_html.find_all("button", {"class": "page-num"})[-1].get_text().strip())
         )
 
-        threads = []
-
         print(f"All offset: {all_offset}")
 
         for i in range(all_offset):
-            t = YThread(
-                session,
-                offset,
-                self._process_apts
-            )
-            threads.append(t)
+            self._process_apts(offset)
             offset += self.OFFSET
-
-        for t in threads:
-            t.start()
-
-        for t in threads:
-            t.join()
 
         c_apts = self.apts
         return c_apts
@@ -305,20 +294,25 @@ class Yad2Logic:
         message = ""
 
         if new_apt:
-            message += "<b>חדש להשכרה</b><br>"
-            message += "<b>מחיר</b> {}<br>".format(found_apt["price"])
+            message += "<b>חדש להשכרה</b>\r\n"
+            message += "ב{}, {} - {}\r\n\r\n".format(
+                found_apt["city"],
+                found_apt["neighborhood"],
+                found_apt["address"]
+            )
+            message += "<b>מחיר:</b> {} ₪\r\n".format(found_apt["price"])
         else:
-            message += "<b>עדכון מחיר - {}</b><br>".format(found_apt["type"])
-            message += "<b>מחיר</b> <s>{}</s> <b>{}</b><br>".format(apt["price"], found_apt["price"])
+            message += "<b>עדכון מחיר - {}</b>\r\n".format(found_apt["type"])
+            message += "ב{}, {} - {}\r\n\r\n".format(
+                found_apt["city"],
+                found_apt["neighborhood"],
+                found_apt["address"]
+            )
+            message += "<b>מחיר:</b> <s>{} ₪</s> <b>{} ₪</b>\r\n".format(apt["price"], found_apt["price"])
 
-        message += "ב{}, {} - {}<br>".format(
-            found_apt["city"],
-            found_apt["neighborhood"],
-            found_apt["address"]
-        )
-        message += "<b>קומה</b> {}<br>".format(found_apt["floor"])
-        message += "{} <b>חדרים</b><br>".format(found_apt["rooms"])
-        message += "<a href='{}'>לינק</a>".format(apt["url"])
+        message += "<b>קומה:</b> {}\r\n".format(found_apt["floor"])
+        message += "<b>חדרים:</b> {}\r\n\r\n".format(found_apt["rooms"])
+        message += "<a href='{}'>קישור למודעה</a>".format(found_apt["url"])
 
         self._send_message(message)
 
