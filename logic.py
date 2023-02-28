@@ -1,3 +1,4 @@
+import html
 import os
 import time
 from datetime import datetime
@@ -36,8 +37,8 @@ class Yad2Logic:
                 api_url,
                 json={
                     'chat_id': os.getenv('TELEGRAM_CHAT_ID'),
-                    'text': escape_markdown(message, version=2),
-                    'parse_mode': 'MarkdownV2'
+                    'text': html.escape(message),
+                    'parse_mode': 'html'
                 }
             )
             print(r.content)
@@ -304,27 +305,20 @@ class Yad2Logic:
         message = ""
 
         if new_apt:
-            message += "*חדש להשכרה*\r\n"
-            message += "ב{}, {} - {}\r\n".format(
-                found_apt["city"],
-                found_apt["neighborhood"],
-                found_apt["address"]
-            )
-            message += "*קומה* {}\r\n".format(found_apt["floor"])
-            message += "{} *חדרים*\r\n".format(found_apt["rooms"])
-            message += "*מחיר* {}\r\n".format(found_apt["price"])
+            message += "<b>חדש להשכרה</b><br>"
+            message += "<b>מחיר</b> {}<br>".format(found_apt["price"])
         else:
-            message += "*עדכון מחיר - {}*".format(found_apt["type"])
-            message += "ב{}, {} - {}\r\n".format(
-                found_apt["city"],
-                found_apt["neighborhood"],
-                found_apt["address"]
-            )
-            message += "*קומה* {}\r\n".format(found_apt["floor"])
-            message += "{} *חדרים*\r\n".format(found_apt["rooms"])
-            message += "*מחיר* ~{}~ {}\r\n".format(apt["price"], found_apt["price"])
+            message += "<b>עדכון מחיר - {}</b><br>".format(found_apt["type"])
+            message += "<b>מחיר</b> <s>{}</s> <b>{}</b><br>".format(apt["price"], found_apt["price"])
 
-        message += "{}\r\n".format(apt["url"])
+        message += "ב{}, {} - {}<br>".format(
+            found_apt["city"],
+            found_apt["neighborhood"],
+            found_apt["address"]
+        )
+        message += "<b>קומה</b> {}<br>".format(found_apt["floor"])
+        message += "{} <b>חדרים</b><br>".format(found_apt["rooms"])
+        message += "<a href='{}'>לינק</a>".format(apt["url"])
 
         self._send_message(message)
 
