@@ -283,7 +283,8 @@ class Yad2Logic:
                 self.driver.execute_script(js)
                 self.driver.find_element(By.CLASS_NAME, "btn").submit()
                 status = 1
-                self.driver.quit()
+
+        time.sleep(5)
 
         try:
             r = requests.get(
@@ -296,6 +297,8 @@ class Yad2Logic:
 
         html = r.content
         parsed_html = BeautifulSoup(html, "lxml")
+
+        self.driver.quit()
 
         return parsed_html
 
