@@ -283,6 +283,7 @@ class Yad2Logic:
                 self.driver.execute_script(js)
                 self.driver.find_element(By.CLASS_NAME, "btn").submit()
                 status = 1
+                self.driver.quit()
 
         try:
             r = requests.get(
