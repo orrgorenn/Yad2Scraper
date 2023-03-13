@@ -15,8 +15,6 @@ from selenium.webdriver.common.by import By
 from telegram.constants import ParseMode
 from urllib3 import Retry
 
-from ythread import YThread
-
 load_dotenv()
 
 
@@ -283,6 +281,7 @@ class Yad2Logic:
                 self.driver.execute_script(js)
                 self.driver.find_element(By.CLASS_NAME, "btn").submit()
                 status = 1
+                self.driver.quit()
 
         time.sleep(5)
 
@@ -297,8 +296,6 @@ class Yad2Logic:
 
         html = r.content
         parsed_html = BeautifulSoup(html, "lxml")
-
-        self.driver.quit()
 
         return parsed_html
 
