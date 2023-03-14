@@ -274,6 +274,7 @@ class Yad2Logic:
             if res.json()['status'] == 0:
                 time.sleep(5)
                 print("Still waiting...")
+                res.close()
             else:
                 requ = res.json()['request']
                 js = f'document.getElementsByName("h-captcha-response")[0].innerHTML="{requ}";'
