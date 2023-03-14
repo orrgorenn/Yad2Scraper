@@ -1,5 +1,6 @@
 import html
 import os
+import sys
 import time
 from datetime import datetime
 from random import randint
@@ -282,6 +283,7 @@ class Yad2Logic:
                 self.driver.find_element(By.CLASS_NAME, "btn").submit()
                 status = 1
                 self.driver.quit()
+                sys.exit(0)
 
         time.sleep(5)
 
